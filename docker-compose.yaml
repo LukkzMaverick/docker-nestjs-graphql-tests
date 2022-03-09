@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+
+  node:
+    build:
+      context: ./nest-api-graphql
+      dockerfile: Dockerfile
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 20s docker-entrypoint.sh
+    container_name: node
+    networks:
+      - node_network
+    volumes:
+      - ./nest-api-graphql:/home/node/app
+    tty: true
+    depends_on:
+      - db
+  db:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    container_name: db
+    restart: always
+    tty: true
+    volumes: 
+      - ~/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=nest_graphql
+      - MYSQL_ROOT_PASSWORD=root
+    networks:
+      - node_network
+    ports:
+     - 3306:3306
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    image: lukkzmaverick/fullcycle-desafio2-nginx
+    container_name: nginx 
+    networks: 
+     - node_network
+    ports:
+     - 8080:80
+    depends_on:
+      - node
+
+networks:
+  node_network:
+    driver: bridge
